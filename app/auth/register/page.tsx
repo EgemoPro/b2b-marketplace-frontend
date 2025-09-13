@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
@@ -15,8 +14,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { Eye, EyeOff, Mail, Lock, Building2, Phone, MapPin } from "lucide-react"
+import { Eye, EyeOff, Mail, Lock, Phone, MapPin, Building2 } from "lucide-react"
 import Link from "next/link"
+import { Logo } from "@/components/ui/logo"
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -71,9 +71,9 @@ export default function RegisterPage() {
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-            className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-2xl mb-4"
+            className="mb-4"
           >
-            <Building2 className="w-8 h-8 text-primary-foreground" />
+            <Logo size="xl" className="justify-center" />
           </motion.div>
           <h1 className="text-3xl font-bold text-foreground">AfriMarket B2B</h1>
           <p className="text-muted-foreground mt-2">Créez votre compte professionnel</p>

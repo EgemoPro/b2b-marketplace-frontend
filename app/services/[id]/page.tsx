@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator"
 import { Star, Clock, Shield, MessageSquare, ArrowLeft, Building2, Calendar, DollarSign } from "lucide-react"
 import Link from "next/link"
 import { motion } from "framer-motion"
+import { Logo } from "@/components/ui/logo"
 
 export default function ServiceDetailPage() {
   const params = useParams()
@@ -109,9 +110,7 @@ export default function ServiceDetailPage() {
       <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/services" className="flex items-center space-x-2">
-            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
-              <Building2 className="w-6 h-6 text-primary-foreground" />
-            </div>
+            <Logo size="lg" />
             <span className="text-xl font-bold text-foreground">AfriMarket B2B</span>
           </Link>
           <div className="flex items-center space-x-4">

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Building2, Users, MessageSquare, CreditCard, Shield, Globe } from "lucide-react"
 import Link from "next/link"
+import { Logo } from "@/components/ui/logo"
 
 export default function HomePage() {
   const { isAuthenticated } = useAppSelector((state) => state.auth)
@@ -57,12 +58,7 @@ export default function HomePage() {
       {/* Header */}
       <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
-              <Building2 className="w-6 h-6 text-primary-foreground" />
-            </div>
-            <span className="text-xl font-bold text-foreground">AfriMarket B2B</span>
-          </div>
+          <Logo size="lg" />
           <div className="flex items-center space-x-4">
             <Link href="/auth/login">
               <Button variant="ghost">Se connecter</Button>
@@ -151,14 +147,9 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="bg-background border-t py-12">
         <div className="container mx-auto px-4 text-center">
-          <div className="flex items-center justify-center space-x-2 mb-4">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <Building2 className="w-5 h-5 text-primary-foreground" />
-            </div>
-            <span className="text-lg font-bold text-foreground">AfriMarket B2B</span>
-          </div>
+          <Logo size="md" className="justify-center mb-4" />
           <p className="text-muted-foreground">
-            © 2024 AfriMarket B2B. Construit avec ❤️ pour l'écosystème B2B africain.
+            © 2024 AFRIMARKET B2B. Construit avec ❤️ pour l'écosystème B2B africain.
           </p>
         </div>
       </footer>

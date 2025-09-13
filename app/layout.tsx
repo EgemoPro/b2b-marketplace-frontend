@@ -8,7 +8,7 @@ import { Suspense } from "react"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "AfriMarket B2B - Marketplace Africaine",
+  title: "AFRIMARKET B2B - Marketplace Africaine",
   description: "Plateforme B2B pour l'écosystème africain avec support CFA Franc",
   generator: "v0.app",
   manifest: "/manifest.json",
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "AfriMarket B2B",
+    title: "AFRIMARKET B2B",
   },
 }
 

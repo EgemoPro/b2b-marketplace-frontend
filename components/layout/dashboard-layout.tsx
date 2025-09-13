@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-
+import { Logo } from "@/components/ui/logo"
 import { useState } from "react"
 import { useAppSelector, useAppDispatch } from "@/lib/hooks"
 import { logout } from "@/lib/slices/auth"
@@ -18,7 +18,6 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import {
-  Building2,
   LayoutDashboard,
   Package,
   MessageSquare,
@@ -73,11 +72,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const Sidebar = ({ mobile = false }: { mobile?: boolean }) => (
     <div className={`flex flex-col h-full ${mobile ? "w-full" : "w-64"} bg-sidebar border-r border-sidebar-border`}>
       {/* Logo */}
-      <div className="flex items-center space-x-2 p-6 border-b border-sidebar-border">
-        <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-          <Building2 className="w-5 h-5 text-primary-foreground" />
-        </div>
-        <span className="text-lg font-bold text-sidebar-foreground">AfriMarket B2B</span>
+      <div className="flex items-center p-6 border-b border-sidebar-border">
+        <Logo size="md" />
       </div>
 
       {/* Navigation */}

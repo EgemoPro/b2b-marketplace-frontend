@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { motion } from "framer-motion"
 import { useGetServicesQuery } from "@/lib/api/services"
@@ -11,9 +10,11 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Search, Filter, Building2, ArrowRight } from "lucide-react"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Search, Filter, ArrowRight, Menu, Home, Package, MessageSquare, User, Settings } from "lucide-react"
 import Link from "next/link"
 import type { ServiceFilters as ServiceFiltersType } from "@/lib/api/services"
+import { Logo } from "@/components/ui/logo"
 
 export default function ServicesPage() {
   const [filters, setFilters] = useState<ServiceFiltersType>({
@@ -23,6 +24,7 @@ export default function ServicesPage() {
   })
   const [searchTerm, setSearchTerm] = useState("")
   const [showFilters, setShowFilters] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const { data, isLoading, error } = useGetServicesQuery(filters)
 
@@ -46,24 +48,93 @@ export default function ServicesPage() {
     "Finance",
   ]
 
+  const navigationItems = [
+    { href: "/", label: "Accueil", icon: Home },
+    { href: "/services", label: "Services", icon: Package },
+    { href: "/dashboard", label: "Dashboard", icon: User },
+    { href: "/dashboard/messages", label: "Messages", icon: MessageSquare },
+    { href: "/dashboard/documents", label: "Documents", icon: Settings },
+  ]
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5">
       {/* Header */}
       <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center space-x-2">
-            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
-              <Building2 className="w-6 h-6 text-primary-foreground" />
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
+          <div className="flex items-center justify-between">
+            {/* Mobile menu button - only visible on small screens */}
+            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="sm" className="md:hidden p-2">
+                  <Menu className="h-5 w-5" />
+                  <span className="sr-only">Ouvrir le menu</span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-80">
+                <div className="flex flex-col h-full">
+                  {/* Logo in mobile menu */}
+                  <div className="flex items-center space-x-2 pb-6 border-b">
+                    <Logo size="lg" />
+                    <span className="text-lg font-bold">AfriMarket B2B</span>
+                  </div>
+
+                  {/* Navigation items */}
+                  <nav className="flex-1 py-6">
+                    <ul className="space-y-2">
+                      {navigationItems.map((item) => {
+                        const Icon = item.icon
+                        return (
+                          <li key={item.href}>
+                            <Link
+                              href={item.href}
+                              className="flex items-center space-x-3 px-3 py-2 rounded-lg text-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+                              onClick={() => setMobileMenuOpen(false)}
+                            >
+                              <Icon className="h-5 w-5" />
+                              <span>{item.label}</span>
+                            </Link>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  </nav>
+
+                  {/* Auth buttons in mobile menu */}
+                  <div className="border-t pt-6 space-y-3">
+                    <Link href="/auth/login" onClick={() => setMobileMenuOpen(false)}>
+                      <Button variant="outline" className="w-full bg-transparent">
+                        Se connecter
+                      </Button>
+                    </Link>
+                    <Link href="/auth/register" onClick={() => setMobileMenuOpen(false)}>
+                      <Button className="w-full">Créer un compte</Button>
+                    </Link>
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
+
+            {/* Logo section - always visible */}
+            <Link href="/" className="flex items-center space-x-2 flex-shrink-0">
+              <Logo size="lg" />
+            </Link>
+
+            {/* Brand name - hidden on mobile, visible on larger screens */}
+            <span className="hidden md:block text-lg lg:text-xl font-bold text-foreground">AfriMarket B2B</span>
+
+            {/* Auth buttons - hidden on mobile, visible on larger screens */}
+            <div className="hidden md:flex items-center space-x-2 sm:space-x-4 flex-shrink-0">
+              <Link href="/auth/login">
+                <Button variant="ghost" size="sm" className="text-sm sm:text-base px-2 sm:px-4">
+                  Se connecter
+                </Button>
+              </Link>
+              <Link href="/auth/register">
+                <Button size="sm" className="text-sm sm:text-base px-2 sm:px-4">
+                  Créer un compte
+                </Button>
+              </Link>
             </div>
-            <span className="text-xl font-bold text-foreground">AfriMarket B2B</span>
-          </Link>
-          <div className="flex items-center space-x-4">
-            <Link href="/auth/login">
-              <Button variant="ghost">Se connecter</Button>
-            </Link>
-            <Link href="/auth/register">
-              <Button>Créer un compte</Button>
-            </Link>
           </div>
         </div>
       </header>
