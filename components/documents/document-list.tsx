@@ -17,6 +17,8 @@ import {
 } from "@/components/ui/alert-dialog"
 import { useToast } from "@/hooks/use-toast"
 import { type Document, useDeleteDocumentMutation } from "@/lib/api/documents"
+import { useState } from "react"
+import { FilePreview } from "./file-preview"
 
 interface DocumentListProps {
   documents: Document[]
@@ -52,6 +54,7 @@ const getFileIcon = (mimeType: string) => {
 
 export function DocumentList({ documents, title, description, showPublicIndicator = false }: DocumentListProps) {
   const [deleteDocument] = useDeleteDocumentMutation()
+  const [previewDocument, setPreviewDocument] = useState<Document | null>(null)
   const { toast } = useToast()
 
   const handleDelete = async (documentId: string) => {
@@ -73,6 +76,21 @@ export function DocumentList({ documents, title, description, showPublicIndicato
   const handleDownload = (document: Document) => {
     // Open secure URL in new tab for download
     window.open(document.secureUrl, "_blank")
+  }
+
+  const handlePreview = async (document: Document) => {
+    try {
+      const response = await fetch(document.secureUrl)
+      const blob = await response.blob()
+      const file = new File([blob], document.originalName, { type: document.mimeType })
+      setPreviewDocument({ ...document, file })
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger le document pour la prévisualisation.",
+        variant: "destructive",
+      })
+    }
   }
 
   if (documents.length === 0) {
@@ -152,6 +170,14 @@ export function DocumentList({ documents, title, description, showPublicIndicato
                 <Button
                   variant="ghost"
                   size="sm"
+                  onClick={() => handlePreview(document)}
+                  className="text-green-600 hover:text-green-800"
+                >
+                  Prévisualiser
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => handleDownload(document)}
                   className="text-blue-600 hover:text-blue-800"
                 >
@@ -185,6 +211,12 @@ export function DocumentList({ documents, title, description, showPublicIndicato
             </motion.div>
           ))}
         </div>
+        <FilePreview
+          file={previewDocument?.file || null}
+          isOpen={!!previewDocument}
+          onClose={() => setPreviewDocument(null)}
+          onDownload={() => previewDocument && handleDownload(previewDocument)}
+        />
       </CardContent>
     </Card>
   )

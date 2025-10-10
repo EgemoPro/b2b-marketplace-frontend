@@ -2,7 +2,7 @@ import { createSlice, type PayloadAction } from "@reduxjs/toolkit"
 
 interface Notification {
   id: string
-  type: "info" | "success" | "warning" | "error"
+  type: string
   title: string
   message: string
   timestamp: string
@@ -10,12 +10,12 @@ interface Notification {
 }
 
 interface NotificationsState {
-  notifications: Notification[]
+  items: Notification[]
   unreadCount: number
 }
 
 const initialState: NotificationsState = {
-  notifications: [],
+  items: [],
   unreadCount: 0,
 }
 
@@ -30,32 +30,33 @@ const notificationsSlice = createSlice({
         timestamp: new Date().toISOString(),
         read: false,
       }
-      state.notifications.unshift(notification)
+      state.items.unshift(notification)
       state.unreadCount += 1
     },
     markAsRead: (state, action: PayloadAction<string>) => {
-      const notification = state.notifications.find((n) => n.id === action.payload)
+      const notification = state.items.find((n) => n.id === action.payload)
       if (notification && !notification.read) {
         notification.read = true
         state.unreadCount -= 1
       }
     },
     markAllAsRead: (state) => {
-      state.notifications.forEach((n) => (n.read = true))
+      state.items.forEach((n) => (n.read = true))
       state.unreadCount = 0
     },
     removeNotification: (state, action: PayloadAction<string>) => {
-      const index = state.notifications.findIndex((n) => n.id === action.payload)
+      const index = state.items.findIndex((n) => n.id === action.payload)
       if (index !== -1) {
-        const notification = state.notifications[index]
+        const notification = state.items[index]
         if (!notification.read) {
           state.unreadCount -= 1
         }
-        state.notifications.splice(index, 1)
+        state.items.splice(index, 1)
       }
     },
   },
 })
 
 export const { addNotification, markAsRead, markAllAsRead, removeNotification } = notificationsSlice.actions
+export const deleteNotification = removeNotification
 export default notificationsSlice.reducer

@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useState } from "react"
 import { motion } from "framer-motion"
-import { Save, Upload, X, FileText } from "lucide-react"
+import { Save, Upload, X, FileText, Eye } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DocumentUpload } from "@/components/documents/document-upload"
+import { FilePreview } from "@/components/documents/file-preview"
 import { useToast } from "@/hooks/use-toast"
 import { useCreateRequestMutation } from "@/lib/api/requests"
 import type { Document } from "@/lib/api/documents"
@@ -41,6 +42,7 @@ export function RequestForm() {
     attachedDocuments: [],
   })
   const [showDocumentUpload, setShowDocumentUpload] = useState(false)
+  const [previewDocument, setPreviewDocument] = useState<Document | null>(null)
   const { toast } = useToast()
   const [createRequest, { isLoading }] = useCreateRequestMutation()
 
@@ -65,6 +67,21 @@ export function RequestForm() {
       ...prev,
       attachedDocuments: prev.attachedDocuments.filter((doc) => doc.id !== documentId),
     }))
+  }
+
+  const handlePreviewDocument = async (document: Document) => {
+    try {
+      const response = await fetch(document.secureUrl)
+      const blob = await response.blob()
+      const file = new File([blob], document.originalName, { type: document.mimeType })
+      setPreviewDocument({ ...document, file })
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger le document pour la prévisualisation.",
+        variant: "destructive",
+      })
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -261,15 +278,26 @@ export function RequestForm() {
                           <p className="text-xs text-gray-500">{doc.description}</p>
                         </div>
                       </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeDocument(doc.id)}
-                        className="text-red-600 hover:text-red-800"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handlePreviewDocument(doc)}
+                          className="text-blue-600 hover:text-blue-800"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeDocument(doc.id)}
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -315,6 +343,14 @@ export function RequestForm() {
           </form>
         </CardContent>
       </Card>
+
+      {/* Document Preview Modal */}
+      <FilePreview
+        file={previewDocument?.file || null}
+        isOpen={!!previewDocument}
+        onClose={() => setPreviewDocument(null)}
+        onDownload={() => previewDocument && window.open(previewDocument.secureUrl, "_blank")}
+      />
     </div>
   )
 }

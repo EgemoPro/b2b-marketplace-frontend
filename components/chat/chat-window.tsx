@@ -15,6 +15,8 @@ import { Badge } from "@/components/ui/badge"
 import { Send, Paperclip, ImageIcon, Circle, Phone, Video, MoreVertical } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import type { Message } from "@/lib/api/messages"
+import { FileAttachmentPreview } from "./file-attachment-preview"
+import { useToast } from "@/hooks/use-toast"
 
 interface ChatWindowProps {
   conversationId: string
@@ -23,9 +25,14 @@ interface ChatWindowProps {
 export function ChatWindow({ conversationId }: ChatWindowProps) {
   const [messageText, setMessageText] = useState("")
   const [isTyping, setIsTyping] = useState(false)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [showFilePreview, setShowFilePreview] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const imageInputRef = useRef<HTMLInputElement>(null)
   const { user } = useAppSelector((state) => state.auth)
   const { isConnected } = useWebSocket()
+  const { toast } = useToast()
 
   const { data, isLoading } = useGetConversationQuery(conversationId)
   const [sendMessage, { isLoading: isSending }] = useSendMessageMutation()
@@ -60,6 +67,52 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
       setMessageText("")
     } catch (error) {
       console.error("Failed to send message:", error)
+    }
+  }
+
+  const handleFileSelect = (file: File, inputType: "file" | "image") => {
+    const maxSize = 10 * 1024 * 1024 // 10MB
+
+    if (file.size > maxSize) {
+      toast({
+        title: "Fichier trop volumineux",
+        description: "La taille maximale autorisée est de 10MB.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setSelectedFile(file)
+    setShowFilePreview(true)
+  }
+
+  const handleSendFile = async (file: File, message?: string) => {
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+      formData.append("conversationId", conversationId)
+      if (message) formData.append("content", message)
+
+      const messageType = file.type.startsWith("image/") ? "image" : "file"
+      formData.append("type", messageType)
+
+      await sendMessage({
+        conversationId,
+        content: message || file.name,
+        type: messageType,
+        file: formData,
+      }).unwrap()
+
+      toast({
+        title: "Fichier envoyé",
+        description: "Votre fichier a été envoyé avec succès.",
+      })
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible d'envoyer le fichier.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -272,10 +325,25 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
       {/* Message Input */}
       <div className="border-t p-4">
         <form onSubmit={handleSendMessage} className="flex items-center space-x-2">
-          <Button type="button" variant="ghost" size="sm">
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            accept=".pdf,.doc,.docx,.txt,.zip"
+            onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0], "file")}
+          />
+          <input
+            ref={imageInputRef}
+            type="file"
+            className="hidden"
+            accept="image/*"
+            onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0], "image")}
+          />
+
+          <Button type="button" variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()}>
             <Paperclip className="w-4 h-4" />
           </Button>
-          <Button type="button" variant="ghost" size="sm">
+          <Button type="button" variant="ghost" size="sm" onClick={() => imageInputRef.current?.click()}>
             <ImageIcon className="w-4 h-4" />
           </Button>
           <Input
@@ -296,6 +364,16 @@ export function ChatWindow({ conversationId }: ChatWindowProps) {
           </p>
         )}
       </div>
+
+      <FileAttachmentPreview
+        file={selectedFile}
+        isOpen={showFilePreview}
+        onClose={() => {
+          setShowFilePreview(false)
+          setSelectedFile(null)
+        }}
+        onSend={handleSendFile}
+      />
     </div>
   )
 }

@@ -60,6 +60,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     { name: "Messages", href: "/dashboard/messages", icon: MessageSquare },
     { name: "Paiements", href: "/dashboard/payments", icon: CreditCard },
     { name: "Documents", href: "/dashboard/documents", icon: FolderOpen },
+    { name: "Notifications", href: "/dashboard/notifications", icon: Bell },
     { name: "Avis", href: "/dashboard/reviews", icon: Star },
     ...(user?.role === "admin"
       ? [
@@ -155,14 +156,16 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
             <div className="flex items-center space-x-4">
               {/* Notifications */}
-              <Button variant="ghost" size="sm" className="relative">
-                <Bell className="w-5 h-5" />
-                {unreadCount > 0 && (
-                  <Badge className="absolute -top-1 -right-1 w-5 h-5 flex items-center justify-center p-0 text-xs">
-                    {unreadCount > 9 ? "9+" : unreadCount}
-                  </Badge>
-                )}
-              </Button>
+              <Link href="/dashboard/notifications">
+                <Button variant="ghost" size="sm" className="relative">
+                  <Bell className="w-5 h-5" />
+                  {unreadCount > 0 && (
+                    <Badge className="absolute -top-1 -right-1 w-5 h-5 flex items-center justify-center p-0 text-xs">
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </Badge>
+                  )}
+                </Button>
+              </Link>
 
               {/* User Menu */}
               <DropdownMenu>

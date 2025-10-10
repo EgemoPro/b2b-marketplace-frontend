@@ -6,6 +6,7 @@ import { messagesApi } from "./api/messages"
 import { paymentsApi } from "./api/payments"
 import { adminApi } from "./api/admin"
 import { documentsApi } from "./api/documents"
+import { companiesApi } from "./api/companies"
 import authReducer from "./slices/auth"
 import chatReducer from "./slices/chat"
 import notificationsReducer from "./slices/notifications"
@@ -22,6 +23,7 @@ export const store = configureStore({
     [paymentsApi.reducerPath]: paymentsApi.reducer,
     [adminApi.reducerPath]: adminApi.reducer,
     [documentsApi.reducerPath]: documentsApi.reducer,
+    [companiesApi.reducerPath]: companiesApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
@@ -36,6 +38,7 @@ export const store = configureStore({
       paymentsApi.middleware,
       adminApi.middleware,
       documentsApi.middleware,
+      companiesApi.middleware,
     ),
 })
 

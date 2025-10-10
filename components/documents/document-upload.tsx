@@ -19,6 +19,7 @@ import {
   useUploadTransactionProofMutation,
   type Document,
 } from "@/lib/api/documents"
+import { FilePreview } from "./file-preview"
 
 interface DocumentUploadProps {
   category: "company" | "personal" | "verification" | "transaction_proof"
@@ -70,6 +71,7 @@ const allowedTypes = [
 
 export function DocumentUpload({ category, transactionId, onUploadComplete }: DocumentUploadProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [showPreview, setShowPreview] = useState(false)
   const [documentType, setDocumentType] = useState("")
   const [description, setDescription] = useState("")
   const [isPublic, setIsPublic] = useState(false)
@@ -179,6 +181,7 @@ export function DocumentUpload({ category, transactionId, onUploadComplete }: Do
       setDocumentType("")
       setDescription("")
       setIsPublic(false)
+      setShowPreview(false)
       if (fileInputRef.current) fileInputRef.current.value = ""
 
       onUploadComplete?.(result)
@@ -193,6 +196,7 @@ export function DocumentUpload({ category, transactionId, onUploadComplete }: Do
 
   const removeFile = () => {
     setSelectedFile(null)
+    setShowPreview(false)
     if (fileInputRef.current) fileInputRef.current.value = ""
   }
 
@@ -236,6 +240,14 @@ export function DocumentUpload({ category, transactionId, onUploadComplete }: Do
                 <p className="font-medium text-green-700">{selectedFile.name}</p>
                 <p className="text-sm text-gray-500">{(selectedFile.size / (1024 * 1024)).toFixed(2)} MB</p>
               </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowPreview(true)}
+                className="text-blue-500 hover:text-blue-700"
+              >
+                Prévisualiser
+              </Button>
               <Button variant="ghost" size="sm" onClick={removeFile} className="text-red-500 hover:text-red-700">
                 <X className="h-4 w-4" />
               </Button>
@@ -315,6 +327,9 @@ export function DocumentUpload({ category, transactionId, onUploadComplete }: Do
           )}
           {isLoading ? "Téléchargement..." : "Télécharger le document"}
         </Button>
+
+        {/* File Preview Component */}
+        <FilePreview file={selectedFile} isOpen={showPreview} onClose={() => setShowPreview(false)} />
       </CardContent>
     </Card>
   )
