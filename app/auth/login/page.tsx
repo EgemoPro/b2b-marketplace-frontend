@@ -1,9 +1,8 @@
 "use client"
 
 import type React from "react"
-
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { motion } from "framer-motion"
 import { useLoginMutation } from "@/lib/api/auth"
 import { useAppDispatch } from "@/lib/hooks"
@@ -13,22 +12,80 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Eye, EyeOff, Mail, Lock } from "lucide-react"
+import { Eye, EyeOff, Mail, Lock, AlertTriangle, ShieldCheck } from "lucide-react"
 import Link from "next/link"
 import { Logo } from "@/components/ui/logo"
+import { isValidEmail, rateLimiter, sanitizeInput } from "@/lib/security"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
+  const [validationError, setValidationError] = useState<string | null>(null)
+  const [isRateLimited, setIsRateLimited] = useState(false)
+  const [rateLimitCountdown, setRateLimitCountdown] = useState(0)
+
   const [login, { isLoading, error }] = useLoginMutation()
   const dispatch = useAppDispatch()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const sessionExpired = searchParams.get("expired") === "true"
+
+  useEffect(() => {
+    if (rateLimitCountdown > 0) {
+      const timer = setTimeout(() => setRateLimitCountdown(rateLimitCountdown - 1), 1000)
+      return () => clearTimeout(timer)
+    } else if (rateLimitCountdown === 0 && isRateLimited) {
+      setIsRateLimited(false)
+    }
+  }, [rateLimitCountdown, isRateLimited])
+
+  const validateInputs = (): boolean => {
+    setValidationError(null)
+
+    const sanitizedEmail = sanitizeInput(email.trim().toLowerCase())
+
+    if (!sanitizedEmail) {
+      setValidationError("Veuillez entrer votre email")
+      return false
+    }
+
+    if (!isValidEmail(sanitizedEmail)) {
+      setValidationError("Format d'email invalide")
+      return false
+    }
+
+    if (!password) {
+      setValidationError("Veuillez entrer votre mot de passe")
+      return false
+    }
+
+    if (password.length < 6) {
+      setValidationError("Le mot de passe doit contenir au moins 6 caractères")
+      return false
+    }
+
+    return true
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    const rateLimitKey = `login_${sanitizeInput(email.toLowerCase())}`
+    if (!rateLimiter.isAllowed(rateLimitKey, 5, 60000)) {
+      setIsRateLimited(true)
+      setRateLimitCountdown(Math.ceil(rateLimiter.getRemainingTime(rateLimitKey) / 1000))
+      return
+    }
+
+    if (!validateInputs()) return
+
     try {
-      const result = await login({ email, password }).unwrap()
+      const sanitizedEmail = sanitizeInput(email.trim().toLowerCase())
+      const result = await login({ email: sanitizedEmail, password }).unwrap()
+
+      rateLimiter.reset(rateLimitKey)
+
       dispatch(setCredentials(result))
       router.push("/dashboard")
     } catch (err) {
@@ -66,10 +123,35 @@ export default function LoginPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-              {error && (
+              {sessionExpired && (
+                <Alert variant="default" className="bg-amber-500/10 border-amber-500/50">
+                  <AlertTriangle className="h-4 w-4 text-amber-500" />
+                  <AlertDescription className="text-amber-700 dark:text-amber-400">
+                    Votre session a expiré. Veuillez vous reconnecter.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {isRateLimited && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>Trop de tentatives. Réessayez dans {rateLimitCountdown} secondes.</AlertDescription>
+                </Alert>
+              )}
+
+              {validationError && (
+                <Alert variant="destructive">
+                  <AlertDescription>{validationError}</AlertDescription>
+                </Alert>
+              )}
+
+              {/* API error */}
+              {error && !validationError && (
                 <Alert variant="destructive">
                   <AlertDescription>
-                    {"data" in error ? (error.data as any)?.message || "Erreur de connexion" : "Erreur de connexion"}
+                    {"data" in error
+                      ? (error.data as any)?.message || "Identifiants incorrects"
+                      : "Erreur de connexion"}
                   </AlertDescription>
                 </Alert>
               )}
@@ -86,6 +168,8 @@ export default function LoginPage() {
                     onChange={(e) => setEmail(e.target.value)}
                     className="pl-10"
                     required
+                    autoComplete="email"
+                    disabled={isRateLimited}
                   />
                 </div>
               </div>
@@ -102,6 +186,8 @@ export default function LoginPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     className="pl-10 pr-10"
                     required
+                    autoComplete="current-password"
+                    disabled={isRateLimited}
                   />
                   <Button
                     type="button"
@@ -109,6 +195,7 @@ export default function LoginPage() {
                     size="sm"
                     className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                     onClick={() => setShowPassword(!showPassword)}
+                    tabIndex={-1}
                   >
                     {showPassword ? (
                       <EyeOff className="h-4 w-4 text-muted-foreground" />
@@ -119,10 +206,15 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button type="submit" className="w-full" disabled={isLoading || isRateLimited} loading={isLoading}>
                 {isLoading ? "Connexion..." : "Se connecter"}
               </Button>
             </form>
+
+            <div className="mt-4 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+              <ShieldCheck className="h-3 w-3" />
+              <span>Connexion sécurisée SSL</span>
+            </div>
 
             <div className="mt-6 text-center text-sm">
               <span className="text-muted-foreground">Pas encore de compte ? </span>

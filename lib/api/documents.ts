@@ -1,4 +1,4 @@
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react"
+import { baseApi } from "./base"
 
 export interface Document {
   id: string
@@ -41,23 +41,11 @@ export interface DocumentUploadRequest {
   transactionId?: string
 }
 
-export const documentsApi = createApi({
-  reducerPath: "documentsApi",
-  baseQuery: fetchBaseQuery({
-    baseUrl: "/api/v1/documents",
-    prepareHeaders: (headers, { getState }) => {
-      const token = (getState() as any).auth.token
-      if (token) {
-        headers.set("authorization", `Bearer ${token}`)
-      }
-      return headers
-    },
-  }),
-  tagTypes: ["Document"],
+export const documentsApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     uploadCompanyDocument: builder.mutation<Document, FormData>({
       query: (formData) => ({
-        url: "/company",
+        url: "/documents/company",
         method: "POST",
         body: formData,
       }),
@@ -65,7 +53,7 @@ export const documentsApi = createApi({
     }),
     uploadPersonalDocument: builder.mutation<Document, FormData>({
       query: (formData) => ({
-        url: "/personal",
+        url: "/documents/personal",
         method: "POST",
         body: formData,
       }),
@@ -73,7 +61,7 @@ export const documentsApi = createApi({
     }),
     uploadVerificationDocument: builder.mutation<Document, FormData>({
       query: (formData) => ({
-        url: "/verification",
+        url: "/documents/verification",
         method: "POST",
         body: formData,
       }),
@@ -81,26 +69,26 @@ export const documentsApi = createApi({
     }),
     uploadTransactionProof: builder.mutation<Document, FormData>({
       query: (formData) => ({
-        url: "/transaction-proof",
+        url: "/documents/transaction-proof",
         method: "POST",
         body: formData,
       }),
       invalidatesTags: ["Document"],
     }),
     getCompanyDocuments: builder.query<Document[], void>({
-      query: () => "/company",
+      query: () => "/documents/company",
       providesTags: ["Document"],
     }),
     getPersonalDocuments: builder.query<Document[], void>({
-      query: () => "/personal",
+      query: () => "/documents/personal",
       providesTags: ["Document"],
     }),
     getSecureDocumentUrl: builder.query<{ secureUrl: string }, string>({
-      query: (documentId) => `/${documentId}/secure-url`,
+      query: (documentId) => `/documents/${documentId}/secure-url`,
     }),
     deleteDocument: builder.mutation<void, string>({
       query: (documentId) => ({
-        url: `/${documentId}`,
+        url: `/documents/${documentId}`,
         method: "DELETE",
       }),
       invalidatesTags: ["Document"],

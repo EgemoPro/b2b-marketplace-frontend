@@ -4,7 +4,10 @@ export interface User {
   id: string
   email: string
   role: "client" | "supplier" | "admin"
-  companyName: string
+  accountType: "individual" | "company"
+  companyName?: string
+  firstName?: string
+  lastName?: string
   siret?: string
   sector: string
   description?: string
@@ -12,6 +15,9 @@ export interface User {
   phone: string
   isVerified: boolean
   createdAt: string
+  companySize?: string
+  website?: string
+  avatar?: string
 }
 
 export interface LoginRequest {
@@ -23,12 +29,16 @@ export interface RegisterRequest {
   email: string
   password: string
   role: "client" | "supplier"
-  companyName: string
+  accountType: "individual" | "company"
+  companyName?: string
+  firstName?: string
+  lastName?: string
   siret?: string
   sector: string
   description?: string
   address: string
   phone: string
+  companySize?: string
 }
 
 export interface AuthResponse {

@@ -1,72 +1,115 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useCallback } from "react"
 import { useAppDispatch, useAppSelector } from "./hooks"
 import { addMessage, setConnectionStatus } from "./slices/chat"
 import { addNotification } from "./slices/notifications"
+import { isTokenExpired, generateSecureId } from "./security"
+import { logout } from "./slices/auth"
 
 export function useWebSocket() {
   const dispatch = useAppDispatch()
-  const { token, isAuthenticated } = useAppSelector((state) => state.auth)
+  const { token, isAuthenticated, sessionId } = useAppSelector((state) => state.auth)
   const wsRef = useRef<WebSocket | null>(null)
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>()
   const reconnectAttempts = useRef(0)
   const maxReconnectAttempts = 5
+  const connectionId = useRef<string>(generateSecureId(16))
 
-  const connect = () => {
-    if (!isAuthenticated || !token) return
+  const connect = useCallback(() => {
+    if (!isAuthenticated || !token) {
+      return
+    }
+
+    if (isTokenExpired(token)) {
+      dispatch(logout())
+      return
+    }
 
     const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:5000"
-    wsRef.current = new WebSocket(`${wsUrl}?token=${token}`)
+
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:"
+    const secureWsUrl = wsUrl.replace(/^ws(s)?:/, protocol)
+
+    // For development, we pass a short-lived connection token
+    const connectionToken = generateSecureId(32)
+    wsRef.current = new WebSocket(`${secureWsUrl}?cid=${connectionId.current}&ct=${connectionToken}`)
 
     wsRef.current.onopen = () => {
-      console.log("[v0] WebSocket connected")
       dispatch(setConnectionStatus(true))
       reconnectAttempts.current = 0
+
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        wsRef.current.send(
+          JSON.stringify({
+            type: "authenticate",
+            token,
+            sessionId,
+            connectionId: connectionId.current,
+          }),
+        )
+      }
     }
 
     wsRef.current.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data)
-        console.log("[v0] WebSocket message received:", data)
+
+        if (data.connectionId && data.connectionId !== connectionId.current) {
+          console.warn("[Security] WebSocket message from unknown connection")
+          return
+        }
 
         switch (data.type) {
+          case "authenticated":
+            break
+          case "auth_error":
+            console.error("[Security] WebSocket authentication failed")
+            dispatch(logout())
+            break
           case "new_message":
-            dispatch(addMessage(data.message))
-            dispatch(
-              addNotification({
-                type: "info",
-                title: "Nouveau message",
-                message: `${data.message.senderName}: ${data.message.content.substring(0, 50)}...`,
-              }),
-            )
+            if (data.message && typeof data.message.content === "string") {
+              dispatch(addMessage(data.message))
+              dispatch(
+                addNotification({
+                  type: "info",
+                  title: "Nouveau message",
+                  message: `${data.message.senderName}: ${data.message.content.substring(0, 50)}...`,
+                }),
+              )
+            }
             break
           case "user_online":
-            // Handle user online status
-            break
           case "user_offline":
-            // Handle user offline status
             break
           case "notification":
-            dispatch(addNotification(data.notification))
+            if (data.notification) {
+              dispatch(addNotification(data.notification))
+            }
+            break
+          case "session_expired":
+            dispatch(logout())
             break
           default:
-            console.log("[v0] Unknown WebSocket message type:", data.type)
+            break
         }
       } catch (error) {
-        console.error("[v0] Error parsing WebSocket message:", error)
+        console.error("[Security] Error parsing WebSocket message:", error)
       }
     }
 
-    wsRef.current.onclose = () => {
-      console.log("[v0] WebSocket disconnected")
+    wsRef.current.onclose = (event) => {
       dispatch(setConnectionStatus(false))
 
-      // Attempt to reconnect
-      if (reconnectAttempts.current < maxReconnectAttempts) {
+      if (event.code === 4001) {
+        dispatch(logout())
+        return
+      }
+
+      // Attempt to reconnect with exponential backoff
+      if (reconnectAttempts.current < maxReconnectAttempts && isAuthenticated) {
         reconnectAttempts.current++
         const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000)
-        console.log(`[v0] Attempting to reconnect in ${delay}ms (attempt ${reconnectAttempts.current})`)
 
         reconnectTimeoutRef.current = setTimeout(() => {
           connect()
@@ -74,27 +117,33 @@ export function useWebSocket() {
       }
     }
 
-    wsRef.current.onerror = (error) => {
-      console.error("[v0] WebSocket error:", error)
+    wsRef.current.onerror = () => {
+      // Error handling - connection will close automatically
     }
-  }
+  }, [isAuthenticated, token, sessionId, dispatch])
 
-  const disconnect = () => {
+  const disconnect = useCallback(() => {
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current)
     }
     if (wsRef.current) {
-      wsRef.current.close()
+      wsRef.current.close(1000, "User disconnect")
       wsRef.current = null
     }
     dispatch(setConnectionStatus(false))
-  }
+  }, [dispatch])
 
-  const sendMessage = (message: any) => {
+  const sendMessage = useCallback((message: Record<string, any>) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify(message))
+      // Add connection ID for validation
+      const secureMessage = {
+        ...message,
+        connectionId: connectionId.current,
+        timestamp: Date.now(),
+      }
+      wsRef.current.send(JSON.stringify(secureMessage))
     }
-  }
+  }, [])
 
   useEffect(() => {
     if (isAuthenticated && token) {
@@ -106,7 +155,7 @@ export function useWebSocket() {
     return () => {
       disconnect()
     }
-  }, [isAuthenticated, token])
+  }, [isAuthenticated, token, connect, disconnect])
 
   return { sendMessage, isConnected: wsRef.current?.readyState === WebSocket.OPEN }
 }

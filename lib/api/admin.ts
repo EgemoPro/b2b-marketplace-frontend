@@ -1,85 +1,10 @@
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react"
+import { baseApi } from "./base"
+import type { AdminStats, User, Service, Transaction } from "./types"
 
-export interface AdminStats {
-  totalUsers: number
-  totalServices: number
-  totalTransactions: number
-  totalRevenue: number
-  monthlyGrowth: number
-  activeUsers: number
-  pendingVerifications: number
-  disputedTransactions: number
-}
-
-export interface User {
-  id: string
-  email: string
-  firstName: string
-  lastName: string
-  company: string
-  role: "client" | "provider" | "admin"
-  status: "active" | "suspended" | "pending"
-  verified: boolean
-  createdAt: string
-  lastLogin: string
-}
-
-export interface Service {
-  id: string
-  title: string
-  provider: {
-    id: string
-    name: string
-    company: string
-  }
-  category: string
-  price: number
-  currency: string
-  status: "active" | "inactive" | "pending" | "rejected"
-  createdAt: string
-  views: number
-  orders: number
-}
-
-export interface Transaction {
-  id: string
-  amount: number
-  currency: string
-  status: "pending" | "completed" | "disputed" | "cancelled"
-  client: {
-    id: string
-    name: string
-    company: string
-  }
-  provider: {
-    id: string
-    name: string
-    company: string
-  }
-  service: {
-    id: string
-    title: string
-  }
-  createdAt: string
-  escrowStatus: "held" | "released" | "disputed"
-}
-
-export const adminApi = createApi({
-  reducerPath: "adminApi",
-  baseQuery: fetchBaseQuery({
-    baseUrl: `${process.env.NEXT_PUBLIC_API_URL}/admin`,
-    prepareHeaders: (headers, { getState }) => {
-      const token = (getState() as any).auth.token
-      if (token) {
-        headers.set("authorization", `Bearer ${token}`)
-      }
-      return headers
-    },
-  }),
-  tagTypes: ["AdminStats", "Users", "Services", "Transactions"],
+export const adminApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getAdminStats: builder.query<AdminStats, void>({
-      query: () => "/stats",
+      query: () => "/admin/stats",
       providesTags: ["AdminStats"],
     }),
     getUsers: builder.query<
@@ -87,14 +12,14 @@ export const adminApi = createApi({
       { page?: number; limit?: number; search?: string; role?: string; status?: string }
     >({
       query: ({ page = 1, limit = 10, search, role, status }) => ({
-        url: "/users",
+        url: "/admin/users",
         params: { page, limit, search, role, status },
       }),
       providesTags: ["Users"],
     }),
     updateUserStatus: builder.mutation<void, { userId: string; status: string }>({
       query: ({ userId, status }) => ({
-        url: `/users/${userId}/status`,
+        url: `/admin/users/${userId}/status`,
         method: "PATCH",
         body: { status },
       }),
@@ -102,7 +27,7 @@ export const adminApi = createApi({
     }),
     verifyUser: builder.mutation<void, { userId: string }>({
       query: ({ userId }) => ({
-        url: `/users/${userId}/verify`,
+        url: `/admin/users/${userId}/verify`,
         method: "POST",
       }),
       invalidatesTags: ["Users", "AdminStats"],
@@ -112,14 +37,14 @@ export const adminApi = createApi({
       { page?: number; limit?: number; search?: string; status?: string }
     >({
       query: ({ page = 1, limit = 10, search, status }) => ({
-        url: "/services",
+        url: "/admin/services",
         params: { page, limit, search, status },
       }),
       providesTags: ["Services"],
     }),
     updateServiceStatus: builder.mutation<void, { serviceId: string; status: string }>({
       query: ({ serviceId, status }) => ({
-        url: `/services/${serviceId}/status`,
+        url: `/admin/services/${serviceId}/status`,
         method: "PATCH",
         body: { status },
       }),
@@ -130,14 +55,14 @@ export const adminApi = createApi({
       { page?: number; limit?: number; status?: string }
     >({
       query: ({ page = 1, limit = 10, status }) => ({
-        url: "/transactions",
+        url: "/admin/transactions",
         params: { page, limit, status },
       }),
       providesTags: ["Transactions"],
     }),
     resolveDispute: builder.mutation<void, { transactionId: string; resolution: "refund" | "release" }>({
       query: ({ transactionId, resolution }) => ({
-        url: `/transactions/${transactionId}/resolve`,
+        url: `/admin/transactions/${transactionId}/resolve`,
         method: "POST",
         body: { resolution },
       }),
