@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useEffect, useCallback } from "react"
+import { useEffect, useCallback, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAppSelector, useAppDispatch } from "@/lib/hooks"
 import { logout, updateActivity, checkSession } from "@/lib/slices/auth"
@@ -20,13 +20,20 @@ export function ProtectedRoute({ children, requiredRole, requiredAccountType }: 
   const { isAuthenticated, user, token } = useAppSelector((state) => state.auth)
   const dispatch = useAppDispatch()
   const router = useRouter()
+  const [isMounted, setIsMounted] = useState(false)
 
   useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (!isMounted) return
+
     if (isInIframe()) {
       console.error("[Security] Application loaded in iframe - possible clickjacking attempt")
       document.body.innerHTML = "<h1>Accès non autorisé</h1>"
     }
-  }, [])
+  }, [isMounted])
 
   useEffect(() => {
     if (token && isTokenExpired(token)) {
@@ -49,6 +56,8 @@ export function ProtectedRoute({ children, requiredRole, requiredAccountType }: 
   }, [dispatch])
 
   useEffect(() => {
+    if (!isMounted) return
+
     window.addEventListener("mousemove", handleActivity)
     window.addEventListener("keypress", handleActivity)
     window.addEventListener("click", handleActivity)
@@ -60,7 +69,7 @@ export function ProtectedRoute({ children, requiredRole, requiredAccountType }: 
       window.removeEventListener("click", handleActivity)
       window.removeEventListener("scroll", handleActivity)
     }
-  }, [handleActivity])
+  }, [handleActivity, isMounted])
 
   // Redirect if not authenticated
   useEffect(() => {

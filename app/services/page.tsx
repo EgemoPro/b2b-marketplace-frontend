@@ -45,10 +45,17 @@ export default function ServicesPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [isSearching, setIsSearching] = useState(false)
   const [isOnline, setIsOnline] = useState(true)
+  const [isMounted, setIsMounted] = useState(false)
 
   const { data, isLoading, error, isFetching, refetch } = useGetServicesQuery(filters)
 
   useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (!isMounted) return
+
     setIsOnline(navigator.onLine)
 
     const handleOnline = () => setIsOnline(true)
@@ -61,7 +68,7 @@ export default function ServicesPage() {
       window.removeEventListener("online", handleOnline)
       window.removeEventListener("offline", handleOffline)
     }
-  }, [])
+  }, [isMounted])
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -239,10 +246,12 @@ export default function ServicesPage() {
     </div>
   )
 
+  const showOfflineBanner = isMounted && !isOnline
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5">
       <AnimatePresence>
-        {!isOnline && (
+        {showOfflineBanner && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}

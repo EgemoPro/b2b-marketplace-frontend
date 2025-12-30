@@ -15,9 +15,10 @@ export function useWebSocket() {
   const reconnectAttempts = useRef(0)
   const maxReconnectAttempts = 5
   const connectionId = useRef<string>(generateSecureId(16))
+  const isMounted = useRef(false)
 
   const connect = useCallback(() => {
-    if (!isAuthenticated || !token) {
+    if (!isMounted.current || !isAuthenticated || !token) {
       return
     }
 
@@ -28,7 +29,7 @@ export function useWebSocket() {
 
     const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:5000"
 
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:"
+    const protocol = typeof window !== "undefined" && window.location.protocol === "https:" ? "wss:" : "ws:"
     const secureWsUrl = wsUrl.replace(/^ws(s)?:/, protocol)
 
     // For development, we pass a short-lived connection token
@@ -146,6 +147,8 @@ export function useWebSocket() {
   }, [])
 
   useEffect(() => {
+    isMounted.current = true
+
     if (isAuthenticated && token) {
       connect()
     } else {
@@ -153,6 +156,7 @@ export function useWebSocket() {
     }
 
     return () => {
+      isMounted.current = false
       disconnect()
     }
   }, [isAuthenticated, token, connect, disconnect])
